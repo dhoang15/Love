@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gửi Thanh Nga ❤️</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Quicksand:wght@400;700&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Quicksand', sans-serif;
+            height: 100vh;
+            width: 100vw;
+            touch-action: none; 
+        }
+
+        /* --- PHẦN 1: CANVAS TRÁI TIM --- */
+        canvas {
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 2;
+            cursor: pointer;
+            transition: opacity 1.5s ease;
+        }
+
+        .heart-guide {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 77, 109, 0.5);
+            font-size: 1.2rem;
+            pointer-events: none;
+            z-index: 3;
+            animation: pulse-text 1.5s infinite;
+            white-space: nowrap;
+        }
+
+        @keyframes pulse-text {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        /* --- PHẦN 2: KHÔNG GIAN MƯA 3D --- */
+        #world-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            perspective: 800px;
+            opacity: 0; 
+            transition: opacity 2s ease;
+            z-index: 1;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #world {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 0; height: 0;
+            transform-style: preserve-3d;
+        }
+
+        .item-3d {
+            position: absolute;
+            font-weight: bold;
+            text-align: center;
+            white-space: nowrap;
+            backface-visibility: visible;
+            text-shadow: 0 0 10px rgba(255, 77, 109, 0.8);
+            opacity: 0;
+            will-change: transform, opacity;
+        }
+
+        .item-3d img {
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(255, 77, 109, 0.6);
+            object-fit: cover;
+            border: 1px solid rgba(255, 77, 109, 0.4);
+        }
+
+        /* Style cho Icon */
+        .item-3d i {
+            font-size: 35px;
+            text-shadow: 0 0 15px currentColor;
+        }
+
+        /* Màu sắc chủ đạo */
+        .c1 { color: #ff4d6d; } .c2 { color: #ff8fa3; }
+        .c3 { color: #ffffff; } .c4 { color: #ffccd5; }
+
+        @keyframes fall {
+            0% { opacity: 0; transform: translate3d(var(--x), -800px, var(--z)); }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { opacity: 0; transform: translate3d(var(--x), 800px, var(--z)); }
+        }
+
+        /* --- PHẦN 3: MODAL NHẬP MẬT KHẨU --- */
+        #password-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-content {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 77, 109, 0.5);
+            text-align: center;
+            box-shadow: 0 0 20px rgba(255, 77, 109, 0.3);
+            width: 85%;
+            max-width: 320px;
+        }
+
+        .modal-content h3 { color: #ff4d6d; margin-top: 0; font-family: 'Dancing Script', cursive; font-size: 2rem; }
+
+        input[type="text"] {
+            width: 80%; padding: 12px; margin: 15px 0;
+            border-radius: 25px; border: 1px solid #ff8fa3;
+            background: rgba(255,255,255,0.1); color: white;
+            text-align: center; font-size: 1.1rem; outline: none;
+        }
+        
+        button.unlock-btn {
+            background: linear-gradient(45deg, #ff4d6d, #ff8fa3);
+            color: white; border: none;
+            padding: 10px 30px; border-radius: 25px;
+            font-size: 1rem; cursor: pointer; transition: 0.3s;
+            font-weight: bold; margin-top: 10px;
+        }
+        button.unlock-btn:hover { transform: scale(1.05); box-shadow: 0 0 15px #ff4d6d; }
+        #error-msg { color: #ff4d4d; font-size: 0.9rem; margin-top: 15px; display: none; }
+
+        /* --- PHẦN 4: NÚT NHẠC (HIỆN NGAY LẬP TỨC) --- */
+        #music-control {
+            position: fixed;
+            top: 20px; right: 20px;
+            z-index: 200; 
+            width: 50px; height: 50px;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid #ff4d6d;
+            border-radius: 50%;
+            display: flex; /* <-- QUAN TRỌNG: Hiện ngay lập tức */
+            justify-content: center; align-items: center;
+            cursor: pointer;
+            color: #ff4d6d;
+            font-size: 20px;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s;
+            box-shadow: 0 0 10px rgba(255, 77, 109, 0.5);
+        }
+        
+        #music-control.playing { 
+            animation: spin 4s linear infinite; 
+            box-shadow: 0 0 20px #ff4d6d; 
+            background: rgba(255, 77, 109, 0.2); 
+            border-color: #fff;
+            color: #fff;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+
+    <div class="heart-guide" id="guide">Chạm vào trái tim ❤️</div>
+    <canvas id="heart"></canvas>
+    
+    <div id="music-control" onclick="toggleMusic()">
+        <i class="fa-solid fa-music"></i>
+    </div>
+
+    <div id="password-modal">
+        <div class="modal-content">
+            <h3>Ngày mình yêu nhau?</h3>
+            <p style="color: #ddd; font-size: 0.9rem;">(Nhập đúng mới mở cửa trái tim anh nha)</p>
+            <input type="text" id="pass-input" placeholder="dd/mm/yyyy">
+            <br>
+            <button class="unlock-btn" onclick="checkPassword()">Mở Khóa ❤️</button>
+            <div id="error-msg">Sai rồi! Nhớ lại đi bé ơi 🥺</div>
+        </div>
+    </div>
+
+    <div id="world-container">
+        <div id="world"></div>
+    </div>
+
+    <audio id="bg-music" loop>
+        <source src="nhac.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        /* ==========================================
+           1. CẤU HÌNH
+           ========================================== */
+        const SECRET_PASS = "15/03/2025"; 
+
+        const messages = [
+            "Happy Valentine", "14/02/2026", "Yêu Thanh Nga", 
+            "Mãi bên nhau", "Duy Hoàng ❤️ Thanh Nga", "Cục cưng", 
+            "My Love", "Bé Yêu", "Xinh đẹp tuyệt trần", 
+            "Trái tim anh", "Only You", "Love Forever",
+            "Chụt chụt 😘", "Nhớ em nhiều", "My Ducky 🦆",
+            "Always by my side", "Xin Lỗi vì đã làm em buồn",
+            "Anh yêu em nhiều lắm", "Cảm ơn em đã đến bên anh"
+        ];
+
+        // ICON
+        const icons = [
+            '<i class="fa-solid fa-gift"></i>',
+            '<i class="fa-solid fa-heart"></i>',
+            '<i class="fa-solid fa-ribbon"></i>',
+            '<i class="fa-solid fa-star"></i>',
+            '<i class="fa-solid fa-envelope"></i>'
+        ];
+
+        // ẢNH
+        const images = [
+            "ảnh 1.jpg", "ảnh 2.jpg", "ảnh 3.jpg",
+            "ảnh 4.jpg", "ảnh 5.jpg", "ảnh 6.jpg"
+        ];
+
+        /* ==========================================
+           2. XỬ LÝ NHẠC
+           ========================================== */
+        const music = document.getElementById('bg-music');
+        const musicBtn = document.getElementById('music-control');
+        let isPlaying = false;
+
+        function toggleMusic() {
+            if (isPlaying) {
+                music.pause();
+                musicBtn.classList.remove('playing');
+                musicBtn.innerHTML = '<i class="fa-solid fa-music"></i>'; // Icon nốt nhạc
+            } else {
+                music.play();
+                musicBtn.classList.add('playing');
+                musicBtn.innerHTML = '<i class="fa-solid fa-heart"></i>'; // Icon tim xoay
+            }
+            isPlaying = !isPlaying;
+        }
+
+        function startMusicAuto() {
+            // Nếu nhạc chưa bật thì tự động bật khi nổ
+            if (!isPlaying) {
+                music.play().then(() => {
+                    isPlaying = true;
+                    musicBtn.classList.add('playing');
+                    musicBtn.innerHTML = '<i class="fa-solid fa-heart"></i>';
+                }).catch(e => {
+                    console.log("Auto-play blocked");
+                });
+            }
+        }
+
+        /* ==========================================
+           3. MẬT KHẨU
+           ========================================== */
+        const modal = document.getElementById('password-modal');
+        const passInput = document.getElementById('pass-input');
+        const errorMsg = document.getElementById('error-msg');
+
+        function openModal(e) {
+            if (e.type === 'touchstart') e.preventDefault();
+            if (isExploded) return;
+            modal.style.display = 'flex'; passInput.focus();
+        }
+
+        function checkPassword() {
+            if (passInput.value.trim() === SECRET_PASS) {
+                modal.style.display = 'none'; triggerExplosion();
+            } else {
+                errorMsg.style.display = 'block'; passInput.style.borderColor = '#ff4d4d';
+                passInput.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-10px)' }, { transform: 'translateX(10px)' }, { transform: 'translateX(0)' }], { duration: 300 });
+            }
+        }
+
+        /* ==========================================
+           4. TRÁI TIM 3000 HẠT
+           ========================================== */
+        const canvas = document.getElementById('heart');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [], isExploded = false;
+
+        function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resize); resize();
+
+        function heartFunc(t) {
+            const scale = 17;
+            const x = 16 * Math.pow(Math.sin(t), 3);
+            const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+            return { x: x * scale, y: y * scale };
+        }
+
+        class Particle {
+            constructor(x, y) {
+                this.ox = x + width / 2; this.oy = y + height / 2;
+                this.x = Math.random() * width; this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 10; this.vy = (Math.random() - 0.5) * 10;
+                this.size = Math.random() * 2 + 1;
+                this.color = `rgba(255, ${Math.random()*100}, ${Math.random()*100 + 50}, 0.9)`;
+                this.state = 'assembling'; this.speed = Math.random() * 0.15 + 0.05;
+            }
+            update() {
+                if (this.state === 'assembling') {
+                    this.x += (this.ox - this.x) * this.speed; this.y += (this.oy - this.y) * this.speed;
+                } else {
+                    this.x += this.vx; this.y += this.vy;
+                    this.vx *= 0.96; this.vy *= 0.96; this.size *= 0.96;
+                }
+            }
+            draw() { ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, this.size, this.size); }
+        }
+
+        function initHeart() {
+            particles = [];
+            for (let i = 0; i < Math.PI * 2; i += 0.01) particles.push(new Particle(heartFunc(i).x, heartFunc(i).y));
+            for (let i = 0; i < 3000; i++) { 
+                const r = Math.sqrt(Math.random()); const p = heartFunc(Math.random() * Math.PI * 2);
+                particles.push(new Particle(p.x * r, p.y * r));
+            }
+        }
+        initHeart();
+
+        function animateHeart() {
+            if (!isExploded || particles[0].size > 0.1) {
+                ctx.clearRect(0, 0, width, height);
+                particles.forEach(p => { p.update(); p.draw(); });
+                requestAnimationFrame(animateHeart);
+            }
+        }
+        animateHeart();
+
+        const triggerExplosion = () => {
+            isExploded = true;
+            document.getElementById('guide').style.display = 'none';
+            startMusicAuto();
+            particles.forEach(p => {
+                p.state = 'exploding'; p.vx = (p.x - width/2) * 0.08; p.vy = (p.y - height/2) * 0.08;
+            });
+            setTimeout(() => {
+                canvas.style.opacity = 0; initRainEffect();
+                const worldContainer = document.getElementById('world-container');
+                worldContainer.style.opacity = 1; worldContainer.style.pointerEvents = 'auto';
+                setTimeout(() => canvas.remove(), 2000);
+            }, 300);
+        };
+        canvas.addEventListener('click', openModal);
+        canvas.addEventListener('touchstart', openModal, {passive: false});
+
+        /* ==========================================
+           5. MƯA DÀY + TƯƠNG TÁC THỦ CÔNG
+           ========================================== */
+        function initRainEffect() {
+            const world = document.getElementById('world');
+            const totalItems = 350; 
+
+            for (let i = 0; i < totalItems; i++) {
+                const el = document.createElement('div');
+                el.classList.add('item-3d');
+                
+                const rand = Math.random();
+
+                if (rand < 0.2 && images.length > 0) {
+                    const img = document.createElement('img');
+                    img.src = images[Math.floor(Math.random() * images.length)];
+                    const size = Math.random() * 60 + 30; 
+                    img.style.width = size + 'px'; img.style.height = size + 'px';
+                    el.appendChild(img);
+                } else if (rand < 0.5) {
+                    el.innerHTML = icons[Math.floor(Math.random() * icons.length)];
+                    el.classList.add(`c${Math.floor(Math.random() * 4) + 1}`);
+                } else {
+                    el.innerText = messages[Math.floor(Math.random() * messages.length)];
+                    el.classList.add(`c${Math.floor(Math.random() * 4) + 1}`);
+                    el.style.fontSize = (Math.random() * 15 + 12) + 'px'; 
+                    el.style.fontFamily = Math.random() > 0.5 ? "'Dancing Script'" : "'Quicksand'";
+                }
+
+                const x = (Math.random() * 2000 - 1000) + 'px';
+                const z = (Math.random() * 1600 - 800) + 'px';
+                
+                el.style.setProperty('--x', x); el.style.setProperty('--z', z);
+                
+                const duration = Math.random() * 10 + 6; 
+                el.style.animation = `fall ${duration}s linear infinite`;
+                el.style.animationDelay = `-${Math.random() * 20}s`;
+                el.style.opacity = Math.random() * 0.5 + 0.5;
+
+                world.appendChild(el);
+            }
+            initInteraction();
+        }
+
+        // TƯƠNG TÁC: XOAY KÉO + ZOOM (KHÔNG TỰ ĐỘNG)
+        function initInteraction() {
+            const container = document.getElementById('world-container');
+            const world = document.getElementById('world');
+            
+            let rotX = 0, rotY = 0, scale = 1;
+            let isDragging = false;
+            let startX, startY;
+            let initialPinch = 0, initialScale = 1;
+
+            function updateView() {
+                world.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg) scale(${scale})`;
+            }
+
+            // MOUSE
+            window.addEventListener('wheel', (e) => { // Zoom
+                e.preventDefault();
+                scale = Math.min(Math.max(0.2, scale + e.deltaY * -0.001), 3);
+                updateView();
+            }, { passive: false });
+
+            container.addEventListener('mousedown', e => { // Start Rotate
+                isDragging = true; startX = e.clientX; startY = e.clientY;
+            });
+            window.addEventListener('mousemove', e => { // Rotating
+                if (!isDragging) return;
+                const dx = e.clientX - startX; const dy = e.clientY - startY;
+                rotY += dx * 0.3; rotX -= dy * 0.3;
+                updateView();
+                startX = e.clientX; startY = e.clientY;
+            });
+            window.addEventListener('mouseup', () => isDragging = false);
+
+            // TOUCH
+            container.addEventListener('touchstart', e => {
+                if (e.touches.length === 1) { // 1 Ngón -> Xoay
+                    isDragging = true; startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+                } else if (e.touches.length === 2) { // 2 Ngón -> Zoom
+                    isDragging = false; 
+                    initialPinch = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                    initialScale = scale;
+                }
+            }, { passive: false });
+
+            window.addEventListener('touchmove', e => {
+                e.preventDefault(); 
+                if (e.touches.length === 1 && isDragging) {
+                    const dx = e.touches[0].clientX - startX; const dy = e.touches[0].clientY - startY;
+                    rotY += dx * 0.3; rotX -= dy * 0.3;
+                    updateView();
+                    startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+                } else if (e.touches.length === 2) {
+                    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                    if (initialPinch > 0) {
+                        scale = Math.min(Math.max(0.2, initialScale * (dist / initialPinch)), 3);
+                        updateView();
+                    }
+                }
+            }, { passive: false });
+            window.addEventListener('touchend', () => { isDragging = false; initialPinch = 0; });
+        }
+    </script>
+</body>
+</html>
